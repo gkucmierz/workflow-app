@@ -24,6 +24,9 @@
     "filterAll": "Wszystkie ({count})",
     "filterActive": "Do zrobienia ({count})",
     "filterDone": "Zrobione ({count})",
+    "filterCommon": "🔁 Wspólne ({count})",
+    "commonBadge": "🔁 Wspólny problem",
+    "originProject": "z {project}",
     "dropOverlayTitle": "Upuść zrzuty ekranu, aby utworzyć zadanie!",
     "dropOverlaySubtitle": "Możesz przeciągnąć jeden lub wiele plików naraz",
     "emptyTitle": "Brak zadań w tej kategorii",
@@ -51,6 +54,8 @@
     "newTitle": "Nowe Zadanie",
     "statusDone": "Ukończone",
     "statusPending": "W toku",
+    "commonProblemLabel": "🔁 Wspólny problem / wzorzec (cross-app)",
+    "commonProblemHint": "Zaznacz, jeśli problem powtarza się w kilku aplikacjach w workspace",
     "taskDescLabel": "Opis Zadania / Zgłoszenie:",
     "taskDescPlaceholder": "Opisz co trzeba naprawić lub zaimplementować w projekcie...",
     "draftSaved": "Zapisano w pamięci sesji",
@@ -73,7 +78,11 @@
     "cancelBtn": "Anuluj",
     "saveBtn": "Zapisz Zmiany",
     "createBtn": "Utwórz Zadanie",
-    "deleteConfirm": "Czy na pewno chcesz usunąć to zadanie?"
+    "deleteConfirm": "Czy na pewno chcesz usunąć to zadanie?",
+    "duplicateFoundTitle": "Wykryto istniejący plik (SHA-256)",
+    "duplicateInTask": "Plik „{name}” (hash: {hash}) znajduje się już na liście zrzutów tego zadania.",
+    "duplicateInProject": "Plik „{name}” istnieje już w aplikacji w projekcie [{project}] jako „{existing}” (hash: {hash}). Użyto istniejącego pliku bez dublowania.",
+    "duplicateBadge": "Istniejący plik"
   },
   "annotator": {
     "toolLabel": "Narzędzie:",

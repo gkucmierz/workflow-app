@@ -28,7 +28,21 @@ const taskText = ref('');
 const assets = ref([]);
 const answerText = ref('');
 const isDone = ref(false);
+const isCommonProblem = ref(false);
 const isUploading = ref(false);
+const duplicateAlerts = ref([]);
+
+// Helper: Compute SHA-256 in browser via Web Crypto
+const computeFileSha256 = async (file) => {
+  try {
+    const buffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch {
+    return null;
+  }
+};
 
 const isAnnotatorOpen = ref(false);
 const annotatingAsset = ref(null);
@@ -51,11 +65,8 @@ const saveDraft = (text) => {
   if (text && text.trim().length > 0) {
     try {
       sessionStorage.setItem(key, text);
-      localStorage.setItem(key, text);
       hasSavedDraft.value = true;
-    } catch (e) {
-      console.warn('Failed to save draft:', e);
-    }
+    } catch (e) {}
   } else {
     clearDraft();
   }
@@ -65,7 +76,7 @@ const loadDraft = () => {
   const key = getStorageKey();
   if (!key) return null;
   try {
-    const val = sessionStorage.getItem(key) || localStorage.getItem(key);
+    const val = sessionStorage.getItem(key);
     hasSavedDraft.value = Boolean(val && val.trim().length > 0);
     return val;
   } catch (e) {
@@ -78,66 +89,82 @@ const clearDraft = () => {
   if (!key) return;
   try {
     sessionStorage.removeItem(key);
-    localStorage.removeItem(key);
   } catch (e) {}
   hasSavedDraft.value = false;
 };
 
 const clearDraftManual = () => {
-  taskText.value = '';
   clearDraft();
+  taskText.value = '';
 };
 
 watch(taskText, (newVal) => {
-  if (props.isOpen) {
-    saveDraft(newVal);
-  }
+  saveDraft(newVal);
 });
 
-// Initialize form
+// Watch incoming props to populate form
 watch(
-  () => props.isOpen,
-  async (open) => {
-    if (open) {
-      if (props.taskData) {
-        const savedDraft = loadDraft();
-        taskText.value = (savedDraft !== null && savedDraft !== undefined && savedDraft.trim().length > 0)
-          ? savedDraft
-          : (props.taskData.task || '');
-        assets.value = JSON.parse(JSON.stringify(props.taskData.assets || []));
-        answerText.value = props.taskData.answer || '';
-        isDone.value = Boolean(props.taskData.done);
+  () => props.taskData,
+  (newData) => {
+    if (newData) {
+      taskText.value = props.taskData.task || '';
+      assets.value = JSON.parse(JSON.stringify(props.taskData.assets || []));
+      answerText.value = props.taskData.answer || '';
+      isDone.value = Boolean(props.taskData.done);
+      isCommonProblem.value = Boolean(props.taskData.common_problem);
 
-        // If files were dropped onto an existing task card:
-        if (props.initialFiles && props.initialFiles.length > 0) {
-          await uploadFiles(props.initialFiles);
-        }
-      } else {
-        const savedDraft = loadDraft();
-        taskText.value = savedDraft || '';
-        assets.value = [];
-        answerText.value = '';
-        isDone.value = false;
+      // If files were dropped onto an existing task card:
+      if (props.initialFiles && props.initialFiles.length > 0) {
+        uploadFiles(props.initialFiles);
+      }
+    } else {
+      taskText.value = loadDraft() || '';
+      assets.value = [];
+      answerText.value = '';
+      isDone.value = false;
+      isCommonProblem.value = false;
 
-        // If files were dropped onto the project card or board
-        if (props.initialFiles && props.initialFiles.length > 0) {
-          await uploadFiles(props.initialFiles);
-        }
+      // If files were dropped onto the project card or board
+      if (props.initialFiles && props.initialFiles.length > 0) {
+        uploadFiles(props.initialFiles);
       }
     }
   },
   { immediate: true }
 );
 
-// File Uploads
+// File Uploads with SHA-256 Duplicate Detection
 const uploadFiles = async (files) => {
   if (!files || files.length === 0 || !props.project) return;
   isUploading.value = true;
 
   try {
-    const formData = new FormData();
+    const filesToUpload = [];
     for (const f of files) {
-      formData.append('files', f);
+      const fileHash = await computeFileSha256(f);
+      // Check if already in current task
+      const alreadyInTask = assets.value.some(
+        a => (fileHash && a.hash === fileHash) || a.filename === f.name
+      );
+      if (alreadyInTask) {
+        duplicateAlerts.value.push({
+          id: Date.now() + Math.random(),
+          type: 'task',
+          message: t('taskModal.duplicateInTask', {
+            name: f.name,
+            hash: fileHash ? fileHash.slice(0, 10) : 'sha256'
+          })
+        });
+        continue;
+      }
+      filesToUpload.push({ file: f, hash: fileHash });
+    }
+
+    if (filesToUpload.length === 0) return;
+
+    const formData = new FormData();
+    for (const item of filesToUpload) {
+      formData.append('files', item.file);
     }
 
     const res = await fetch(`/api/projects/${props.project}/assets`, {
@@ -148,11 +175,31 @@ const uploadFiles = async (files) => {
 
     if (data.success && Array.isArray(data.files)) {
       for (const uploaded of data.files) {
-        assets.value.push({
-          filename: uploaded.filename,
-          url: uploaded.url,
-          annotations: []
-        });
+        if (uploaded.deduplicated) {
+          duplicateAlerts.value.push({
+            id: Date.now() + Math.random(),
+            type: 'app',
+            message: t('taskModal.duplicateInProject', {
+              name: uploaded.filename,
+              project: uploaded.existingProject || props.project,
+              existing: uploaded.existingFilename || uploaded.filename,
+              hash: (uploaded.hash || '').slice(0, 10)
+            })
+          });
+        }
+
+        const alreadyExists = assets.value.some(
+          a => a.filename === uploaded.filename || (uploaded.hash && a.hash === uploaded.hash)
+        );
+        if (!alreadyExists) {
+          assets.value.push({
+            filename: uploaded.filename,
+            url: uploaded.url,
+            hash: uploaded.hash,
+            isDuplicate: Boolean(uploaded.deduplicated),
+            annotations: []
+          });
+        }
       }
     }
   } catch (err) {
@@ -255,6 +302,7 @@ const saveTask = async () => {
     task: taskText.value.trim(),
     assets: assets.value,
     answer: answerText.value.trim(),
+    common_problem: isCommonProblem.value,
     done: isDone.value
   };
 
@@ -303,35 +351,36 @@ const closeModal = () => {
   emit('close');
 };
 
-const handleKeydown = (e) => {
-  if (e.key === 'Escape' && props.isOpen && !isAnnotatorOpen.value) {
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    closeModal();
+// Keyboard ESC Dismissal (Rule 6.1)
+const handleGlobalKeydown = (e) => {
+  if (e.key === 'Escape') {
+    if (isAnnotatorOpen.value) {
+      e.stopPropagation();
+      isAnnotatorOpen.value = false;
+      annotatingAsset.value = null;
+      return;
+    }
+    if (props.isOpen) {
+      e.stopPropagation();
+      closeModal();
+    }
   }
 };
 
 onMounted(() => {
-  window.addEventListener('keydown', handleKeydown);
+  window.addEventListener('keydown', handleGlobalKeydown);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown);
+  window.removeEventListener('keydown', handleGlobalKeydown);
 });
 </script>
 
 <template>
-  <div
-    v-if="isOpen"
-    class="modal-backdrop"
-    @click.self="closeModal"
-    @dragenter="onModalDragEnter"
-    @dragover.prevent="onModalDragOver"
-    @dragleave="onModalDragLeave"
-    @drop="onModalDrop"
-  >
+  <div v-if="isOpen" class="modal-backdrop" @click="closeModal">
     <div
       class="task-modal-window glass-panel"
+      @click.stop
       @dragenter="onModalDragEnter"
       @dragover.prevent="onModalDragOver"
       @dragleave="onModalDragLeave"
@@ -346,6 +395,21 @@ onUnmounted(() => {
           </h2>
         </div>
         <div class="header-right">
+          <!-- Common Problem Switch -->
+          <button
+            class="common-toggle-btn"
+            :class="{ 'is-common': isCommonProblem }"
+            @click="isCommonProblem = !isCommonProblem"
+          >
+            <span class="toggle-switch-track">
+              <span class="toggle-switch-thumb"></span>
+            </span>
+            <span class="toggle-status-label">
+              {{ t('taskModal.commonProblemLabel') }}
+            </span>
+          </button>
+
+          <!-- Completed Status Switch -->
           <button
             class="status-toggle-btn"
             :class="{ 'is-done': isDone }"
@@ -401,6 +465,26 @@ onUnmounted(() => {
             </label>
           </div>
 
+          <!-- Duplicate Asset Notifications -->
+          <div v-if="duplicateAlerts.length > 0" class="duplicate-alert-list animate-fade-in">
+            <div
+              v-for="(alert, aIdx) in duplicateAlerts"
+              :key="alert.id || aIdx"
+              class="duplicate-alert-card"
+            >
+              <span class="duplicate-alert-icon">🔁</span>
+              <div class="duplicate-alert-body">
+                <span class="duplicate-alert-title">{{ t('taskModal.duplicateFoundTitle') }}</span>
+                <span class="duplicate-alert-msg">{{ alert.message }}</span>
+              </div>
+              <button
+                type="button"
+                class="duplicate-alert-close"
+                @click="duplicateAlerts.splice(aIdx, 1)"
+              >✕</button>
+            </div>
+          </div>
+
           <!-- Dropzone -->
           <div
             class="assets-dropzone"
@@ -440,6 +524,13 @@ onUnmounted(() => {
                     class="asset-img"
                     alt="Screenshot"
                   />
+                  <!-- Duplicate Asset Badge -->
+                  <span
+                    v-if="asset.isDuplicate || asset.deduplicated"
+                    class="duplicate-asset-badge"
+                  >
+                    🔁 {{ t('taskModal.duplicateBadge') }}
+                  </span>
                   <!-- Vector Annotations Indicator -->
                   <div v-if="asset.annotations && asset.annotations.length > 0" class="vector-badge">
                     {{ t('taskModal.vectorCount', { count: asset.annotations.length }) }}

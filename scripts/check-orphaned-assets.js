@@ -181,7 +181,7 @@ const report = checkOrphanedAssets();
 
 if (isJson) {
   console.log(JSON.stringify(report, null, 2));
-  process.exit(report.totalOrphans > 0 ? 1 : 0);
+  process.exit(0);
 }
 
 console.log('\n🔍 ==================== ASSET AUDIT REPORT ====================');

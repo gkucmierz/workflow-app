@@ -282,6 +282,32 @@ export function createWorkflowApi() {
         }
       }
 
+      // If viewing _workspace, also aggregate common_problem tasks from all other projects
+      if (project === '_workspace') {
+        const otherProjects = fs.readdirSync(DATA_DIR, { withFileTypes: true })
+          .filter(e => e.isDirectory() && !e.name.startsWith('.') && e.name !== '_workspace');
+
+        for (const op of otherProjects) {
+          const otherTasksDir = path.join(DATA_DIR, op.name, 'tasks');
+          if (fs.existsSync(otherTasksDir)) {
+            const opFiles = fs.readdirSync(otherTasksDir).filter(f => f.endsWith('.json'));
+            for (const f of opFiles) {
+              try {
+                const raw = fs.readFileSync(path.join(otherTasksDir, f), 'utf8');
+                const t = JSON.parse(raw);
+                if (t.common_problem) {
+                  tasks.push({
+                    ...t,
+                    isAggregatedCommon: true,
+                    originProject: op.name
+                  });
+                }
+              } catch {}
+            }
+          }
+        }
+      }
+
       tasks.sort((a, b) => ((b.last_modified || b.timestamp || 0) - (a.last_modified || a.timestamp || 0)));
       res.json(tasks);
     } catch (err) {
@@ -304,7 +330,7 @@ export function createWorkflowApi() {
   app.post('/api/projects/:project/tasks', (req, res) => {
     try {
       const { project } = req.params;
-      const { task, assets, answer, done } = req.body;
+      const { task, assets, answer, done, common_problem } = req.body;
       const { tasksDir } = ensureProjectDirs(project);
 
       // Generate clean sequential integer ID (e.g. "1", "2", "3")
@@ -327,6 +353,7 @@ export function createWorkflowApi() {
         task: cleanText(task),
         assets: sanitizeAssets(assets),
         answer: cleanText(answer),
+        common_problem: Boolean(common_problem),
         done: Boolean(done)
       };
 
@@ -365,6 +392,9 @@ export function createWorkflowApi() {
       }
       if (cleanBody.answer !== undefined) {
         cleanBody.answer = cleanText(cleanBody.answer);
+      }
+      if (cleanBody.common_problem !== undefined) {
+        cleanBody.common_problem = Boolean(cleanBody.common_problem);
       }
       const now = Date.now();
       const updated = {
@@ -458,33 +488,67 @@ export function createWorkflowApi() {
             url: `/data/${project}/assets/${existingMatch.filename}`,
             size: existingMatch.size,
             hash: fullHash,
-            deduplicated: true
+            deduplicated: true,
+            existingInApp: true,
+            existingProject: project,
+            existingFilename: existingMatch.filename
           });
         } else {
-          // Genuinely new content! Save with clean original name
-          let targetFilename = cleanOriginalName;
-          const targetPath = path.join(assetsDir, targetFilename);
+          // Check if file already exists in another project in the application
+          const matchInApp = findAssetByHash(fullHash, project);
+          if (matchInApp.exists) {
+            let targetFilename = cleanOriginalName;
+            const targetPath = path.join(assetsDir, targetFilename);
+            if (fs.existsSync(targetPath)) {
+              const shortHash = fullHash.substring(0, 8);
+              targetFilename = `${cleanBase}_${shortHash}${ext}`;
+            }
 
-          // If a file with this name already exists on disk but has DIFFERENT content, append short hash
-          if (fs.existsSync(targetPath)) {
-            const shortHash = fullHash.substring(0, 8);
-            targetFilename = `${cleanBase}_${shortHash}${ext}`;
+            fs.writeFileSync(path.join(assetsDir, targetFilename), f.buffer);
+            existingHashMap.set(fullHash, {
+              filename: targetFilename,
+              size: f.buffer.length,
+              mtime: Date.now()
+            });
+
+            uploaded.push({
+              filename: targetFilename,
+              url: `/data/${project}/assets/${targetFilename}`,
+              size: f.buffer.length,
+              hash: fullHash,
+              deduplicated: true,
+              existingInApp: true,
+              existingProject: matchInApp.project,
+              existingFilename: matchInApp.filename,
+              existingTasks: matchInApp.tasks || []
+            });
+          } else {
+            // Genuinely new content! Save with clean original name
+            let targetFilename = cleanOriginalName;
+            const targetPath = path.join(assetsDir, targetFilename);
+
+            // If a file with this name already exists on disk but has DIFFERENT content, append short hash
+            if (fs.existsSync(targetPath)) {
+              const shortHash = fullHash.substring(0, 8);
+              targetFilename = `${cleanBase}_${shortHash}${ext}`;
+            }
+
+            fs.writeFileSync(path.join(assetsDir, targetFilename), f.buffer);
+            existingHashMap.set(fullHash, {
+              filename: targetFilename,
+              size: f.buffer.length,
+              mtime: Date.now()
+            });
+
+            uploaded.push({
+              filename: targetFilename,
+              url: `/data/${project}/assets/${targetFilename}`,
+              size: f.buffer.length,
+              hash: fullHash,
+              deduplicated: false,
+              existingInApp: false
+            });
           }
-
-          fs.writeFileSync(path.join(assetsDir, targetFilename), f.buffer);
-          existingHashMap.set(fullHash, {
-            filename: targetFilename,
-            size: f.buffer.length,
-            mtime: Date.now()
-          });
-
-          uploaded.push({
-            filename: targetFilename,
-            url: `/data/${project}/assets/${targetFilename}`,
-            size: f.buffer.length,
-            hash: fullHash,
-            deduplicated: false
-          });
         }
       }
 
@@ -547,6 +611,19 @@ export function createWorkflowApi() {
     } catch (err) {
       console.error('Error pruning assets:', err);
       res.status(500).json({ error: 'Failed to prune assets' });
+    }
+  });
+
+  // Find asset across entire application by SHA-256 hash
+  app.get('/api/assets/find-by-hash/:hash', (req, res) => {
+    try {
+      const { hash } = req.params;
+      const targetProject = req.query.project || null;
+      const result = findAssetByHash(hash, targetProject);
+      res.json(result);
+    } catch (err) {
+      console.error('Error finding asset by hash:', err);
+      res.status(500).json({ error: 'Failed to find asset by hash' });
     }
   });
 
@@ -673,6 +750,76 @@ export function createWorkflowApi() {
   });
 
   return app;
+}
+
+// -------------------------------------------------------------
+// Find Asset by SHA-256 Hash Across Entire Application
+// Scans all project assets directories in DATA_DIR to match hash
+// Also identifies any tasks referencing the matching file
+// -------------------------------------------------------------
+export function findAssetByHash(hash, targetProject = null) {
+  if (!hash || typeof hash !== 'string') return { exists: false };
+  const normalizedHash = hash.trim().toLowerCase();
+
+  try {
+    if (!fs.existsSync(DATA_DIR)) return { exists: false };
+
+    const projectDirs = fs.readdirSync(DATA_DIR, { withFileTypes: true })
+      .filter(d => d.isDirectory() && !d.name.startsWith('.'))
+      .map(d => d.name);
+
+    const orderedProjects = targetProject && projectDirs.includes(targetProject)
+      ? [targetProject, ...projectDirs.filter(p => p !== targetProject)]
+      : projectDirs;
+
+    for (const proj of orderedProjects) {
+      const assetsDir = path.join(DATA_DIR, proj, 'assets');
+      if (!fs.existsSync(assetsDir)) continue;
+
+      const assetFiles = fs.readdirSync(assetsDir).filter(f => !f.startsWith('.'));
+      for (const fn of assetFiles) {
+        try {
+          const fullPath = path.join(assetsDir, fn);
+          const stat = fs.statSync(fullPath);
+          if (!stat.isFile()) continue;
+
+          const buffer = fs.readFileSync(fullPath);
+          const fileHash = crypto.createHash('sha256').update(buffer).digest('hex');
+
+          if (fileHash === normalizedHash) {
+            const referencingTasks = [];
+            const tasksDir = path.join(DATA_DIR, proj, 'tasks');
+            if (fs.existsSync(tasksDir)) {
+              const taskFiles = fs.readdirSync(tasksDir).filter(f => f.endsWith('.json'));
+              for (const tf of taskFiles) {
+                try {
+                  const content = JSON.parse(fs.readFileSync(path.join(tasksDir, tf), 'utf8'));
+                  if (Array.isArray(content.assets) && content.assets.some(a => a.filename === fn)) {
+                    referencingTasks.push(content.id || tf.replace('.json', ''));
+                  }
+                } catch {}
+              }
+            }
+
+            return {
+              exists: true,
+              hash: normalizedHash,
+              project: proj,
+              filename: fn,
+              url: `/data/${proj}/assets/${fn}`,
+              size: stat.size,
+              mtime: stat.mtimeMs,
+              tasks: referencingTasks
+            };
+          }
+        } catch {}
+      }
+    }
+  } catch (err) {
+    console.error('Error in findAssetByHash:', err);
+  }
+
+  return { exists: false, hash: normalizedHash };
 }
 
 // -------------------------------------------------------------

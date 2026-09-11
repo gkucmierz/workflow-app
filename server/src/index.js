@@ -24,8 +24,8 @@ if (fs.existsSync(distDir)) {
   });
 }
 
-app.listen(PORT, () => {
-  console.log(`🚀 Workflow App server listening on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Workflow App server listening on http://0.0.0.0:${PORT}`);
   console.log(`📂 Data directory: ${DATA_DIR}`);
   console.log(`💼 Workspace root: ${WORKSPACE_ROOT}`);
 });

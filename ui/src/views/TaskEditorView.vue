@@ -19,6 +19,20 @@ const isDone = ref(false);
 const isUploading = ref(false);
 const isSaving = ref(false);
 const hasSavedDraft = ref(false);
+const isCommonProblem = ref(false);
+const duplicateAlerts = ref([]);
+
+// Helper: Compute SHA-256 in browser via Web Crypto
+const computeFileSha256 = async (file) => {
+  try {
+    const buffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch {
+    return null;
+  }
+};
 
 // Annotator Modal
 const isAnnotatorOpen = ref(false);
@@ -90,6 +104,7 @@ const loadData = async () => {
         assets.value = JSON.parse(JSON.stringify(current.assets || []));
         answerText.value = current.answer || '';
         isDone.value = Boolean(current.done);
+        isCommonProblem.value = Boolean(current.common_problem);
       }
     } catch (err) {
       console.error('Failed to load task for edit:', err);
@@ -101,6 +116,7 @@ const loadData = async () => {
     assets.value = [];
     answerText.value = '';
     isDone.value = false;
+    isCommonProblem.value = false;
 
     // Check for staged assets from drag-and-drop
     const stagedKey = `workflow_staged_assets_${project.value}`;
@@ -115,6 +131,7 @@ const loadData = async () => {
                 filename: f.filename,
                 url: f.url,
                 hash: f.hash,
+                isDuplicate: Boolean(f.deduplicated),
                 annotations: []
               });
             }
@@ -126,15 +143,38 @@ const loadData = async () => {
   }
 };
 
-// Upload screenshots with SHA-256 deduplication
+// Upload screenshots with SHA-256 deduplication and duplicate notification
 const uploadFiles = async (files) => {
   if (!files || files.length === 0 || !project.value) return;
   isUploading.value = true;
 
   try {
-    const formData = new FormData();
+    const filesToUpload = [];
     for (const f of files) {
-      formData.append('files', f);
+      const fileHash = await computeFileSha256(f);
+      // Check if already in current task
+      const alreadyInTask = assets.value.some(
+        a => (fileHash && a.hash === fileHash) || a.filename === f.name
+      );
+      if (alreadyInTask) {
+        duplicateAlerts.value.push({
+          id: Date.now() + Math.random(),
+          type: 'task',
+          message: t('taskModal.duplicateInTask', {
+            name: f.name,
+            hash: fileHash ? fileHash.slice(0, 10) : 'sha256'
+          })
+        });
+        continue;
+      }
+      filesToUpload.push({ file: f, hash: fileHash });
+    }
+
+    if (filesToUpload.length === 0) return;
+
+    const formData = new FormData();
+    for (const item of filesToUpload) {
+      formData.append('files', item.file);
     }
 
     const res = await fetch(`/api/projects/${project.value}/assets`, {
@@ -145,7 +185,19 @@ const uploadFiles = async (files) => {
 
     if (data.success && Array.isArray(data.files)) {
       for (const uploaded of data.files) {
-        // Prevent duplicate tile in UI if already in assets
+        if (uploaded.deduplicated) {
+          duplicateAlerts.value.push({
+            id: Date.now() + Math.random(),
+            type: 'app',
+            message: t('taskModal.duplicateInProject', {
+              name: uploaded.filename,
+              project: uploaded.existingProject || project.value,
+              existing: uploaded.existingFilename || uploaded.filename,
+              hash: (uploaded.hash || '').slice(0, 10)
+            })
+          });
+        }
+
         const alreadyExists = assets.value.some(
           a => a.filename === uploaded.filename || (uploaded.hash && a.hash === uploaded.hash)
         );
@@ -154,6 +206,7 @@ const uploadFiles = async (files) => {
             filename: uploaded.filename,
             url: uploaded.url,
             hash: uploaded.hash,
+            isDuplicate: Boolean(uploaded.deduplicated),
             annotations: []
           });
         }
@@ -260,6 +313,7 @@ const handleSave = async () => {
       task: cleanedTask,
       assets: assets.value,
       answer: cleanedAnswer,
+      common_problem: isCommonProblem.value,
       done: isDone.value
     };
 
@@ -348,6 +402,20 @@ onUnmounted(() => {
         </div>
 
         <div class="header-right">
+          <!-- Common Problem Switch -->
+          <button
+            class="common-toggle-btn"
+            :class="{ 'is-common': isCommonProblem }"
+            @click="isCommonProblem = !isCommonProblem"
+          >
+            <span class="toggle-switch-track">
+              <span class="toggle-switch-thumb"></span>
+            </span>
+            <span class="toggle-status-label">
+              {{ t('taskModal.commonProblemLabel') }}
+            </span>
+          </button>
+
           <!-- Status Switch -->
           <button
             class="status-toggle-btn"
@@ -402,6 +470,26 @@ onUnmounted(() => {
             </label>
           </div>
 
+          <!-- Duplicate Asset Notifications -->
+          <div v-if="duplicateAlerts.length > 0" class="duplicate-alert-list animate-fade-in">
+            <div
+              v-for="(alert, aIdx) in duplicateAlerts"
+              :key="alert.id || aIdx"
+              class="duplicate-alert-card"
+            >
+              <span class="duplicate-alert-icon">🔁</span>
+              <div class="duplicate-alert-body">
+                <span class="duplicate-alert-title">{{ t('taskModal.duplicateFoundTitle') }}</span>
+                <span class="duplicate-alert-msg">{{ alert.message }}</span>
+              </div>
+              <button
+                type="button"
+                class="duplicate-alert-close"
+                @click="duplicateAlerts.splice(aIdx, 1)"
+              >✕</button>
+            </div>
+          </div>
+
           <!-- Drag and drop zone -->
           <div
             class="assets-dropzone"
@@ -435,6 +523,13 @@ onUnmounted(() => {
                     class="asset-image"
                     alt="Uploaded preview"
                   />
+                  <!-- Duplicate Asset Badge -->
+                  <span
+                    v-if="asset.isDuplicate || asset.deduplicated"
+                    class="duplicate-asset-badge"
+                  >
+                    🔁 {{ t('taskModal.duplicateBadge') }}
+                  </span>
                   <span
                     v-if="asset.annotations && asset.annotations.length > 0"
                     class="asset-vectors-badge"

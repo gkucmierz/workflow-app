@@ -116,6 +116,11 @@
       "type": "string",
       "description": "AI agent report of applied resolution, commits, and verification details"
     },
+    "common_problem": {
+      "type": "boolean",
+      "description": "Indicates whether this issue or pattern is common across multiple workspace applications",
+      "default": false
+    },
     "done": {
       "type": "boolean",
       "description": "Task completion status flag"

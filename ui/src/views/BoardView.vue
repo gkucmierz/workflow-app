@@ -74,6 +74,9 @@ const filteredTasks = computed(() => {
   if (filterMode.value === 'done') {
     return tasks.value.filter(t => t.done);
   }
+  if (filterMode.value === 'common') {
+    return tasks.value.filter(t => t.common_problem);
+  }
   return tasks.value;
 });
 
@@ -369,6 +372,13 @@ onMounted(() => {
             >
               {{ t('board.filterDone', { count: tasks.filter(t => t.done).length }) }}
             </button>
+            <button
+              class="filter-pill"
+              :class="{ active: filterMode === 'common' }"
+              @click="filterMode = 'common'"
+            >
+              {{ t('board.filterCommon', { count: tasks.filter(t => t.common_problem).length }) }}
+            </button>
           </div>
 
           <div class="filter-bar-right">
@@ -406,6 +416,8 @@ onMounted(() => {
             <div class="task-card-header" @click.stop>
               <div class="task-card-header-left">
                 <span v-if="task.id" class="task-id-badge">#{{ task.id.replace(/^task_\d+_/, '') }}</span>
+                <span v-if="task.common_problem" class="common-problem-badge">{{ t('board.commonBadge') }}</span>
+                <span v-if="task.originProject" class="origin-project-badge">📂 {{ task.originProject }}</span>
                 <button
                   class="status-toggle-btn"
                   :class="{ 'is-done': task.done }"
@@ -433,7 +445,7 @@ onMounted(() => {
                 class="asset-thumb-wrapper"
               >
                 <img
-                  :src="asset.url || `/data/${selectedProject}/assets/${asset.filename}`"
+                  :src="asset.url || `/data/${task.originProject || selectedProject}/assets/${asset.filename}`"
                   class="asset-thumb"
                   alt="Asset preview"
                 />
@@ -823,6 +835,32 @@ onMounted(() => {
   border-radius: var(--radius-sm);
   -webkit-user-select: none;
   user-select: none;
+}
+
+.common-problem-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  -webkit-user-select: none;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.origin-project-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  -webkit-user-select: none;
+  user-select: none;
+  white-space: nowrap;
 }
 
 .task-date {

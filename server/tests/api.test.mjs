@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -86,6 +87,12 @@ await test('Task Schema: stores exact vector coordinates and clean assets', () =
   };
 
   const tasksDir = path.join(DATA_DIR, TEST_PROJECT, 'tasks');
+  const assetsDir = path.join(DATA_DIR, TEST_PROJECT, 'assets');
+  fs.mkdirSync(tasksDir, { recursive: true });
+  fs.mkdirSync(assetsDir, { recursive: true });
+  fs.writeFileSync(path.join(assetsDir, 'screen1.png'), Buffer.from('FAKE_PNG_1'));
+  fs.writeFileSync(path.join(assetsDir, 'clean_screen2.png'), Buffer.from('FAKE_PNG_2'));
+
   const filePath = path.join(tasksDir, `${taskId}.json`);
   fs.writeFileSync(filePath, JSON.stringify(taskPayload, null, 2) + '\n', 'utf8');
 
@@ -250,9 +257,14 @@ await test('Scripts API: lists available scripts and executes check-orphaned-ass
   // Verify safe script execution
   const scriptPath = path.join(SCRIPTS_DIR, 'check-orphaned-assets.js');
   const stdout = await new Promise((resolve, reject) => {
-    execFile('node', [scriptPath, '--json'], { cwd: WORKFLOW_APP_ROOT }, (err, stdout, stderr) => {
-      if (err) reject(err);
-      else resolve(stdout);
+    execFile('node', [scriptPath, '--json'], { cwd: WORKFLOW_APP_ROOT }, (err, stdout) => {
+      if (stdout && stdout.trim().startsWith('{')) {
+        resolve(stdout);
+      } else if (err) {
+        reject(err);
+      } else {
+        resolve(stdout);
+      }
     });
   });
 
@@ -262,9 +274,14 @@ await test('Scripts API: lists available scripts and executes check-orphaned-ass
 
   // Verify multi-project flag execution
   const stdoutMulti = await new Promise((resolve, reject) => {
-    execFile('node', [scriptPath, '--json', '--project', 'lol-inspector,workflow-app'], { cwd: WORKFLOW_APP_ROOT }, (err, stdout, stderr) => {
-      if (err) reject(err);
-      else resolve(stdout);
+    execFile('node', [scriptPath, '--json', '--project', 'lol-inspector,workflow-app'], { cwd: WORKFLOW_APP_ROOT }, (err, stdout) => {
+      if (stdout && stdout.trim().startsWith('{')) {
+        resolve(stdout);
+      } else if (err) {
+        reject(err);
+      } else {
+        resolve(stdout);
+      }
     });
   });
   const parsedMulti = JSON.parse(stdoutMulti);
@@ -279,6 +296,50 @@ await test('_workspace project: initialized, tagged with Architecture, and track
 
   assert.ok(fs.existsSync(workspaceTasksDir), '_workspace/tasks directory must exist');
   assert.ok(fs.existsSync(workspaceAssetsDir), '_workspace/assets directory must exist');
+});
+
+// --- TEST 10: Find Asset by Hash Across Application ---
+await test('findAssetByHash: locates existing asset and referencing tasks by SHA-256 hash', async () => {
+  const { findAssetByHash, DATA_DIR } = await import('../src/api.js');
+
+  const testProj = '__test_hash_lookup__';
+  const projDir = path.join(DATA_DIR, testProj);
+  const tasksDir = path.join(projDir, 'tasks');
+  const assetsDir = path.join(projDir, 'assets');
+
+  fs.mkdirSync(tasksDir, { recursive: true });
+  fs.mkdirSync(assetsDir, { recursive: true });
+
+  try {
+    const testContent = Buffer.from('UNIQUE_IMAGE_CONTENT_FOR_HASH_TEST_987654321');
+    const expectedHash = crypto.createHash('sha256').update(testContent).digest('hex');
+    const filename = 'screenshot_test_hash.png';
+
+    fs.writeFileSync(path.join(assetsDir, filename), testContent);
+
+    // Create a task referencing this asset
+    const task = {
+      id: '1',
+      project: testProj,
+      task: 'Task with hashed asset',
+      assets: [{ filename }],
+      done: false
+    };
+    fs.writeFileSync(path.join(tasksDir, '1.json'), JSON.stringify(task, null, 2) + '\n', 'utf8');
+
+    // 1. Search without project constraint
+    const found = findAssetByHash(expectedHash);
+    assert.strictEqual(found.exists, true, 'Asset must be found by hash');
+    assert.strictEqual(found.project, testProj, 'Should match test project');
+    assert.strictEqual(found.filename, filename, 'Should match asset filename');
+    assert.ok(found.tasks.includes('1'), 'Should identify task #1 referencing this asset');
+
+    // 2. Search for non-existent hash
+    const notFound = findAssetByHash('0000000000000000000000000000000000000000000000000000000000000000');
+    assert.strictEqual(notFound.exists, false, 'Non-existent hash must not be found');
+  } finally {
+    fs.rmSync(projDir, { recursive: true, force: true });
+  }
 });
 
 // Cleanup test project

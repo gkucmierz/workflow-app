@@ -7,8 +7,8 @@ export default defineConfig(async ({ command }) => {
   // Only attach the Express API middleware during local dev ('serve'), NEVER during 'build'
   if (command === 'serve') {
     try {
-      const serverApiModule = '../server/src/api.js';
-      const { createWorkflowApi } = await import(/* @vite-ignore */ serverApiModule);
+      const serverApiUrl = new URL('../server/src/api.js', import.meta.url).href;
+      const { createWorkflowApi } = await import(/* @vite-ignore */ serverApiUrl);
       plugins.push({
         name: 'workflow-api',
         configureServer(server) {
@@ -17,7 +17,7 @@ export default defineConfig(async ({ command }) => {
         }
       });
     } catch (err) {
-      console.warn('[vite.config.js] Running in standalone UI mode');
+      console.warn('[vite.config.js] Running in standalone UI mode:', err.message);
     }
   }
 

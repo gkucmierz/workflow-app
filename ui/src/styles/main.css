@@ -314,6 +314,157 @@ button, .btn, .pill, .tab, .card-header, .nav-item, .badge, .navbar, .brand, .co
   letter-spacing: 0.01em;
 }
 
+/* Common Problem Switch (Rule 6.2 - Intra-App Uniformity) */
+.common-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 6px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  outline: none !important;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.common-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  border-color: var(--border-strong);
+}
+
+.common-toggle-btn.is-common {
+  background: rgba(245, 158, 11, 0.14);
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.common-toggle-btn.is-common:hover {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: rgba(245, 158, 11, 0.55);
+}
+
+.common-toggle-btn .toggle-switch-track {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.common-toggle-btn.is-common .toggle-switch-track {
+  background: #f59e0b;
+}
+
+.common-toggle-btn.is-common .toggle-switch-thumb {
+  transform: translateX(12px);
+}
+
+[data-theme="light"] .common-toggle-btn {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-muted);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .common-toggle-btn:hover {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+[data-theme="light"] .common-toggle-btn.is-common {
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.38);
+}
+
+/* Duplicate Asset Alert Notifications */
+.duplicate-alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.duplicate-alert-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: var(--text-main);
+  font-size: 0.82rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .duplicate-alert-card {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.duplicate-alert-icon {
+  font-size: 1.1rem;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.duplicate-alert-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.duplicate-alert-title {
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+.duplicate-alert-msg {
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.duplicate-alert-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  outline: none !important;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.duplicate-alert-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+}
+
+/* Duplicate Badge on Asset Thumbnails */
+.duplicate-asset-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.9);
+  color: #000000;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  -webkit-user-select: none;
+  user-select: none;
+  white-space: nowrap;
+  z-index: 2;
+}
+
 /* NanoModal Styling Harmonization */
 .nano-modal-window {
   font-family: var(--font-sans);

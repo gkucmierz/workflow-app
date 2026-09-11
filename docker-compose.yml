@@ -1,0 +1,25 @@
+name: workflow-app
+
+services:
+  workflow-app:
+    container_name: workflow-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "80"
+    environment:
+      - NODE_ENV=production
+      - PORT=80
+      - WORKSPACE_ROOT=/workspace
+      - DATA_DIR=/app/data
+    volumes:
+      - ./data:/app/data
+      - ${HOST_WORKSPACE_PATH:-..}:/workspace:ro
+    networks:
+      - npm_public
+
+networks:
+  npm_public:
+    external: true

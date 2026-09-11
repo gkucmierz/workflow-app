@@ -12,8 +12,8 @@ const __dirname = path.dirname(__filename);
 
 export const PORT = process.env.PORT || 45330;
 export const WORKFLOW_APP_ROOT = path.resolve(__dirname, '../..');
-export const WORKSPACE_ROOT = path.resolve(WORKFLOW_APP_ROOT, '..');
-export const DATA_DIR = path.join(WORKFLOW_APP_ROOT, 'data');
+export const WORKSPACE_ROOT = process.env.WORKSPACE_ROOT || path.resolve(WORKFLOW_APP_ROOT, '..');
+export const DATA_DIR = process.env.DATA_DIR || path.join(WORKFLOW_APP_ROOT, 'data');
 export const SCRIPTS_DIR = path.join(WORKFLOW_APP_ROOT, 'scripts');
 export const SCHEMAS_DIR = path.join(WORKFLOW_APP_ROOT, 'schemas');
 export const TASK_SCHEMA_PATH = path.join(SCHEMAS_DIR, 'task.schema.json');

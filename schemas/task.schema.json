@@ -7,7 +7,7 @@
   "properties": {
     "id": {
       "type": "string",
-      "description": "Unique task identifier, e.g. task_1789090000000_a8f1"
+      "description": "Unique task identifier, e.g. 1"
     },
     "project": {
       "type": "string",

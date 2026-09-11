@@ -49,7 +49,7 @@ await test('ensureProjectDirs: creates tasks/ and assets/ folders in data/<proje
 
 // --- TEST 2: Task Schema with Non-Destructive Vector Annotations ---
 await test('Task Schema: stores exact vector coordinates and clean assets', () => {
-  const taskId = `task_${Date.now()}_test`;
+  const taskId = '1';
   const taskPayload = {
     id: taskId,
     project: TEST_PROJECT,
@@ -57,7 +57,7 @@ await test('Task Schema: stores exact vector coordinates and clean assets', () =
     task: 'Wyśrodkuj przyciski w menu i zmień kolor strzałki',
     assets: [
       {
-        filename: '1789090000_screen1.png',
+        filename: 'screen1.png',
         annotations: [
           {
             type: 'arrow',

@@ -54,9 +54,11 @@ workflow-app/
 ├── data/                    # Local tasks & screenshots (gitignored)
 │   ├── lol-inspector/
 │   │   ├── tasks/
-│   │   │   └── task_1789090000000_a8f1.json
+│   │   │   ├── 1.json
+│   │   │   └── 2.json
 │   │   └── assets/
-│   │       └── 1789090000000_screen1.png
+│   │       ├── screen1.png
+│   │       └── screen2.png
 │   └── ...
 ├── ui/                      # Vue 3 Frontend (Port 45330)
 │   ├── index.html           # Vite HTML entrypoint
@@ -89,13 +91,13 @@ workflow-app/
 
 ```json
 {
-  "id": "task_1789090000000_a8f1",
+  "id": "1",
   "project": "lol-inspector",
   "timestamp": 1789090000000,
   "task": "Wykres zegara ma mieć płynniejszą animację i wyśrodkowany pill",
   "assets": [
     {
-      "filename": "1789090000000_screen1.png",
+      "filename": "screen1.png",
       "annotations": [
         {
           "type": "arrow",

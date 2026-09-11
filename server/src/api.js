@@ -19,6 +19,29 @@ export const SCHEMAS_DIR = path.join(WORKFLOW_APP_ROOT, 'schemas');
 export const TASK_SCHEMA_PATH = path.join(SCHEMAS_DIR, 'task.schema.json');
 export const TASK_SCHEMA_REF = '../../../schemas/task.schema.json';
 
+// Demo Mode & Storage Quota Configuration
+export const IS_DEMO_MODE = process.env.DEMO_MODE === 'true';
+export const MAX_DATA_MB = parseFloat(process.env.MAX_DATA_MB) || 10;
+export const MAX_DATA_BYTES = Math.floor(MAX_DATA_MB * 1024 * 1024);
+
+export function getDirSizeBytes(dirPath) {
+  let total = 0;
+  try {
+    if (!fs.existsSync(dirPath)) return 0;
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dirPath, entry.name);
+      if (entry.isDirectory()) {
+        total += getDirSizeBytes(fullPath);
+      } else if (entry.isFile()) {
+        const stat = fs.statSync(fullPath);
+        total += stat.size;
+      }
+    }
+  } catch {}
+  return total;
+}
+
 // Ensure base data directory exists
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
@@ -74,6 +97,23 @@ export function createWorkflowApi() {
   const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 50 * 1024 * 1024 }
+  });
+
+  // -------------------------------------------------------------
+  // 0. System Info & Quota Telemetry
+  // -------------------------------------------------------------
+  app.get('/api/system-info', (req, res) => {
+    const usedBytes = getDirSizeBytes(DATA_DIR);
+    const usedMb = Number((usedBytes / (1024 * 1024)).toFixed(2));
+    const remainingMb = Number(Math.max(0, MAX_DATA_MB - usedMb).toFixed(2));
+    res.json({
+      demoMode: IS_DEMO_MODE,
+      maxDataMb: MAX_DATA_MB,
+      usedDataBytes: usedBytes,
+      usedDataMb: usedMb,
+      remainingDataMb: remainingMb,
+      quotaExceeded: IS_DEMO_MODE && usedBytes >= MAX_DATA_BYTES
+    });
   });
 
   // -------------------------------------------------------------
@@ -344,6 +384,16 @@ export function createWorkflowApi() {
       const { assetsDir } = ensureProjectDirs(project);
       if (!req.files || req.files.length === 0) {
         return res.status(400).json({ error: 'No files uploaded' });
+      }
+
+      // Hard Quota Enforcement in Demo Mode
+      const incomingBytes = req.files.reduce((sum, f) => sum + (f.size || f.buffer?.length || 0), 0);
+      const currentBytes = getDirSizeBytes(DATA_DIR);
+      if (IS_DEMO_MODE && (currentBytes + incomingBytes) > MAX_DATA_BYTES) {
+        return res.status(413).json({
+          error: 'errDemoQuotaExceeded',
+          message: `Limit pamięci wersji demonstracyjnej (${MAX_DATA_MB} MB) został przekroczony. Usunięcie niepotrzebnych screenshotów zwolni miejsce.`
+        });
       }
 
       // Read existing assets on disk to build a content-hash map

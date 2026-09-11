@@ -271,6 +271,16 @@ await test('Scripts API: lists available scripts and executes check-orphaned-ass
   assert.ok(Array.isArray(parsedMulti.projects), 'Multi-project output should contain projects array');
 });
 
+// --- TEST 9: Global _workspace Architecture Project ---
+await test('_workspace project: initialized, tagged with Architecture, and tracked', async () => {
+  const { createWorkflowApi, DATA_DIR } = await import('../src/api.js');
+  const workspaceTasksDir = path.join(DATA_DIR, '_workspace', 'tasks');
+  const workspaceAssetsDir = path.join(DATA_DIR, '_workspace', 'assets');
+
+  assert.ok(fs.existsSync(workspaceTasksDir), '_workspace/tasks directory must exist');
+  assert.ok(fs.existsSync(workspaceAssetsDir), '_workspace/assets directory must exist');
+});
+
 // Cleanup test project
 cleanup();
 

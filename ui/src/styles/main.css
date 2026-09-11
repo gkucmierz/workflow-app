@@ -166,35 +166,54 @@ button, .btn, .pill, .tab, .card-header, .nav-item, .badge, .navbar, .brand, .co
   user-select: none;
 }
 
-/* Scrollbars */
+/* Auto-hiding Sleek Scrollbars (Zero-Clutter) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+*:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+[data-theme="light"] *:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.15);
-}
-
-[data-theme="light"] ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.04);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: transparent;
   border-radius: var(--radius-full);
+  transition: background 0.25s ease;
 }
 
-[data-theme="light"] ::-webkit-scrollbar-thumb {
+*:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+*:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+[data-theme="light"] *:hover::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.18);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+[data-theme="light"] *:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.35);
 }
 
-[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.32);
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 @keyframes pulse {

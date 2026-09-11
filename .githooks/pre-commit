@@ -1,0 +1,7 @@
+#!/bin/sh
+set -e
+
+echo "🧪 [pre-commit] Running backend and schema tests..."
+npm test
+
+echo "✅ [pre-commit] Tests passed cleanly!"

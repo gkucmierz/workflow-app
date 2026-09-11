@@ -7,7 +7,8 @@ export default defineConfig(async ({ command }) => {
   // Only attach the Express API middleware during local dev ('serve'), NEVER during 'build'
   if (command === 'serve') {
     try {
-      const { createWorkflowApi } = await import('../server/src/api.js');
+      const serverApiModule = '../server/src/api.js';
+      const { createWorkflowApi } = await import(/* @vite-ignore */ serverApiModule);
       plugins.push({
         name: 'workflow-api',
         configureServer(server) {

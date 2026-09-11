@@ -327,9 +327,10 @@ onMounted(() => {
           <span
             v-if="selectedProject"
             class="project-tag-pill"
+            :class="{ 'is-workspace-global': selectedProject === '_workspace' }"
             :style="{ '--proj-hue': getDeterministicHue(selectedProject) }"
           >
-            {{ selectedProject }}
+            {{ selectedProject === '_workspace' ? '🌐 Workspace' : selectedProject }}
           </span>
           <span v-else class="badge-count">{{ t('board.noSelection') }}</span>
         </div>

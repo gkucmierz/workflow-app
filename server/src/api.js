@@ -64,14 +64,17 @@ export function detectProjectTags(projectPath) {
   return tags;
 }
 
-// Helper: Auto-remove trailing whitespace on each line and trim outer whitespace
+// Helper: Auto-remove trailing whitespace on each line and trim outer blank lines while preserving indentation
 export function cleanText(str) {
   if (typeof str !== 'string') return '';
-  return str
-    .split('\n')
-    .map(line => line.replace(/[ \t]+$/g, ''))
-    .join('\n')
-    .trim();
+  const lines = str.split('\n').map(line => line.replace(/[ \t]+$/g, ''));
+  while (lines.length > 0 && lines[0] === '') {
+    lines.shift();
+  }
+  while (lines.length > 0 && lines[lines.length - 1] === '') {
+    lines.pop();
+  }
+  return lines.join('\n');
 }
 
 export function createWorkflowApi() {
@@ -93,7 +96,10 @@ export function createWorkflowApi() {
     return { projectDir, tasksDir, assetsDir };
   }
 
-  // Multer memory storage for computing SHA-256 hashes before disk write
+  // Auto-ensure global workspace architecture project exists
+  ensureProjectDirs('_workspace');
+
+  // Multer configuration for screenshot uploads (stored in memory for SHA-256 deduplication)
   const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 50 * 1024 * 1024 }
@@ -142,7 +148,17 @@ export function createWorkflowApi() {
         })
         .sort((a, b) => a.name.localeCompare(b.name));
 
-      res.json(projects);
+      const workspaceGlobal = {
+        name: '_workspace',
+        displayName: 'Workspace (Architecture)',
+        isGlobal: true,
+        tag: 'Architecture',
+        tags: ['Workspace', 'Architecture'],
+        hasGit: fs.existsSync(path.join(WORKSPACE_ROOT, '.git')),
+        isTracked: true
+      };
+
+      res.json([workspaceGlobal, ...projects]);
     } catch (err) {
       console.error('Error scanning workspace:', err);
       res.status(500).json({ error: 'Failed to scan workspace directories' });
@@ -195,11 +211,19 @@ export function createWorkflowApi() {
             latestTimestamp = dirMtime;
           }
 
-          const projectWorkspacePath = path.join(WORKSPACE_ROOT, e.name);
-          const tags = fs.existsSync(projectWorkspacePath) ? detectProjectTags(projectWorkspacePath) : ['General'];
+          const isGlobal = e.name === '_workspace';
+          let tags;
+          if (isGlobal) {
+            tags = ['Workspace', 'Architecture'];
+          } else {
+            const projectWorkspacePath = path.join(WORKSPACE_ROOT, e.name);
+            tags = fs.existsSync(projectWorkspacePath) ? detectProjectTags(projectWorkspacePath) : ['General'];
+          }
 
           return {
             name: e.name,
+            displayName: isGlobal ? 'Workspace' : e.name,
+            isGlobal,
             tag: tags[0],
             tags,
             totalTasks: total,
@@ -209,6 +233,8 @@ export function createWorkflowApi() {
           };
         })
         .sort((a, b) => {
+          if (a.name === '_workspace') return -1;
+          if (b.name === '_workspace') return 1;
           return b.latestTimestamp - a.latestTimestamp;
         });
 
@@ -687,11 +713,11 @@ export function dedupeProjectAssets(project, { dryRun = false } = {}) {
       const hash = crypto.createHash('sha256').update(buffer).digest('hex');
 
       // Determine upload/creation timestamp:
-      // 1) check if filename starts with Unix timestamp ms (\d{13}_)
-      const tsMatch = fn.match(/^(\d{13})_/);
+      // 1) check if filename starts with Unix timestamp ms or sequence (\d+_)
+      const tsMatch = fn.match(/^(\d+)_/);
       let nameTs = tsMatch ? parseInt(tsMatch[1], 10) : 0;
       let mtime = Math.floor(stat.mtimeMs || stat.ctimeMs || 0);
-      const timestamp = Math.max(nameTs, mtime);
+      const timestamp = nameTs > 0 ? nameTs : mtime;
 
       if (!hashGroups.has(hash)) {
         hashGroups.set(hash, []);
@@ -734,8 +760,8 @@ export function dedupeProjectAssets(project, { dryRun = false } = {}) {
     files.sort((a, b) => {
       if (b.timestamp !== a.timestamp) return b.timestamp - a.timestamp;
       // Prefer cleaner filename (not starting with legacy timestamp prefix)
-      const aHasPrefix = /^(\d{13})_/.test(a.filename);
-      const bHasPrefix = /^(\d{13})_/.test(b.filename);
+      const aHasPrefix = /^(\d+)_/.test(a.filename);
+      const bHasPrefix = /^(\d+)_/.test(b.filename);
       if (aHasPrefix !== bHasPrefix) return aHasPrefix ? 1 : -1;
       return a.filename.localeCompare(b.filename);
     });

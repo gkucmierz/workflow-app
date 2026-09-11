@@ -71,8 +71,8 @@ const onDrop = (e) => {
     <!-- Header -->
     <div class="card-header">
       <div class="title-group">
-        <span class="folder-icon">📂</span>
-        <h3 class="project-title">{{ project.name }}</h3>
+        <span class="folder-icon">{{ (project.isGlobal || project.name === '_workspace') ? '🌐' : '📂' }}</span>
+        <h3 class="project-title">{{ project.displayName || project.name }}</h3>
       </div>
       <div v-if="(project.tags && project.tags.length) || project.tag" class="tag-group">
         <span

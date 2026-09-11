@@ -1,0 +1,125 @@
+{
+  "$id": "https://workflow-app.local/schemas/task.schema.json",
+  "title": "WorkflowTask",
+  "description": "Workflow App task schema with screenshots and vector annotations",
+  "type": "object",
+  "required": ["id", "project", "timestamp", "task", "assets", "done"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique task identifier, e.g. task_1789090000000_a8f1"
+    },
+    "project": {
+      "type": "string",
+      "description": "Project directory name in /workspace"
+    },
+    "timestamp": {
+      "type": "integer",
+      "description": "Creation timestamp in Unix epoch milliseconds"
+    },
+    "last_modified": {
+      "type": "integer",
+      "description": "Last modified timestamp in Unix epoch milliseconds"
+    },
+    "task": {
+      "type": "string",
+      "description": "Issue or task description submitted by the user"
+    },
+    "assets": {
+      "type": "array",
+      "description": "List of screenshot assets with non-destructive vector annotations",
+      "items": {
+        "type": "object",
+        "required": ["filename"],
+        "properties": {
+          "filename": {
+            "type": "string",
+            "description": "Screenshot asset filename stored in assets/"
+          },
+          "annotations": {
+            "type": "array",
+            "description": "Non-destructive vector annotation layers",
+            "items": {
+              "type": "object",
+              "required": ["type"],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["arrow", "rect", "circle", "text", "brush", "pen"],
+                  "description": "Vector shape or tool type"
+                },
+                "color": {
+                  "type": "string",
+                  "description": "Hex color string of stroke or fill"
+                },
+                "strokeWidth": {
+                  "type": "number",
+                  "description": "Line stroke width in pixels"
+                },
+                "from": {
+                  "type": "object",
+                  "properties": {
+                    "x": { "type": "number" },
+                    "y": { "type": "number" }
+                  },
+                  "required": ["x", "y"],
+                  "description": "Arrow start point coordinates"
+                },
+                "to": {
+                  "type": "object",
+                  "properties": {
+                    "x": { "type": "number" },
+                    "y": { "type": "number" }
+                  },
+                  "required": ["x", "y"],
+                  "description": "Arrow end point coordinates"
+                },
+                "x": {
+                  "type": "number",
+                  "description": "Top-left X coordinate of rectangle"
+                },
+                "y": {
+                  "type": "number",
+                  "description": "Top-left Y coordinate of rectangle"
+                },
+                "width": {
+                  "type": "number",
+                  "description": "Shape width in pixels"
+                },
+                "height": {
+                  "type": "number",
+                  "description": "Shape height in pixels"
+                },
+                "text": {
+                  "type": "string",
+                  "description": "Text annotation string content"
+                },
+                "points": {
+                  "type": "array",
+                  "description": "Coordinate points array for brush or pen strokes",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "x": { "type": "number" },
+                      "y": { "type": "number" }
+                    },
+                    "required": ["x", "y"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "answer": {
+      "type": "string",
+      "description": "AI agent report of applied resolution, commits, and verification details"
+    },
+    "done": {
+      "type": "boolean",
+      "description": "Task completion status flag"
+    }
+  },
+  "additionalProperties": true
+}

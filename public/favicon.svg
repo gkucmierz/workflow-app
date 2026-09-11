@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Top Blue Card Gradient -->
+    <linearGradient id="blueCardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#8eb3f5"/>
+      <stop offset="68%" stop-color="#739be6"/>
+      <stop offset="68.1%" stop-color="#557fd2"/>
+      <stop offset="100%" stop-color="#4d76c6"/>
+    </linearGradient>
+
+    <!-- Middle Amber Card Gradient -->
+    <linearGradient id="amberCardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffd05c"/>
+      <stop offset="70%" stop-color="#ffbe3d"/>
+      <stop offset="70.1%" stop-color="#ea9e1a"/>
+      <stop offset="100%" stop-color="#df9210"/>
+    </linearGradient>
+
+    <!-- Left Amber Strip Gradient -->
+    <linearGradient id="amberStripGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f8a719"/>
+      <stop offset="100%" stop-color="#dc8702"/>
+    </linearGradient>
+
+    <!-- Bottom Green Card Gradient -->
+    <linearGradient id="greenCardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2deca1"/>
+      <stop offset="70%" stop-color="#22dc92"/>
+      <stop offset="70.1%" stop-color="#14bd77"/>
+      <stop offset="100%" stop-color="#0fae6c"/>
+    </linearGradient>
+  </defs>
+
+  <!-- CONNECTOR PIPES (Grey routing lines) -->
+  <!-- Left Pipe: Top Card -> Middle Card -->
+  <path
+    d="M 68 84 L 68 232 A 24 24 0 0 0 92 256 L 152 256"
+    fill="none"
+    stroke="#8e909d"
+    stroke-width="16"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Right Pipe: Middle Card -> Bottom Card -->
+  <path
+    d="M 436 256 L 444 256 A 24 24 0 0 1 468 280 L 468 384 A 24 24 0 0 1 444 408 L 388 408"
+    fill="none"
+    stroke="#8e909d"
+    stroke-width="16"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- TOP CARD (Blue) -->
+  <g id="top-card">
+    <rect
+      x="108"
+      y="56"
+      width="234"
+      height="88"
+      rx="24"
+      fill="url(#blueCardGrad)"
+    />
+    <!-- 2 Navy Blue Lines -->
+    <rect x="136" y="80" width="160" height="14" rx="7" fill="#224896" />
+    <rect x="136" y="106" width="160" height="14" rx="7" fill="#224896" />
+  </g>
+
+  <!-- MIDDLE CARD (Golden Amber) -->
+  <g id="middle-card">
+    <rect
+      x="164"
+      y="178"
+      width="248"
+      height="146"
+      rx="26"
+      fill="url(#amberCardGrad)"
+    />
+    <!-- Left Accent Bookmark Strip -->
+    <path
+      d="M 190 178 L 164 178 A 26 26 0 0 0 138 204 L 138 298 A 26 26 0 0 0 164 324 L 190 324 Z"
+      fill="url(#amberStripGrad)"
+    />
+    <!-- 4 Amber Task Lines -->
+    <rect x="214" y="202" width="166" height="14" rx="7" fill="#d97706" />
+    <rect x="214" y="232" width="166" height="14" rx="7" fill="#d97706" />
+    <rect x="214" y="262" width="166" height="14" rx="7" fill="#d97706" />
+    <rect x="214" y="292" width="166" height="14" rx="7" fill="#d97706" />
+  </g>
+
+  <!-- BOTTOM CARD (Mint Green with Checkmark) -->
+  <g id="bottom-card">
+    <rect
+      x="62"
+      y="360"
+      width="322"
+      height="94"
+      rx="24"
+      fill="url(#greenCardGrad)"
+    />
+    <!-- 2 Emerald Task Lines -->
+    <rect x="88" y="386" width="190" height="14" rx="7" fill="#0c8253" />
+    <rect x="88" y="414" width="190" height="14" rx="7" fill="#0c8253" />
+
+    <!-- Checkmark (✓) -->
+    <path
+      d="M 306 408 L 322 425 L 350 384"
+      fill="none"
+      stroke="#0c8253"
+      stroke-width="14"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </g>
+</svg>

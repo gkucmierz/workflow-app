@@ -1,0 +1,316 @@
+:root {
+  /* Dark Theme (Default) */
+  --bg-app: #090d16;
+  --bg-panel: rgba(15, 23, 42, 0.8);
+  --bg-card: rgba(30, 41, 59, 0.55);
+  --bg-card-hover: rgba(30, 41, 59, 0.85);
+  --bg-card-active: rgba(51, 65, 85, 0.65);
+  --bg-input: rgba(15, 23, 42, 0.6);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(56, 189, 248, 0.4);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  --accent-cyan: #38bdf8;
+  --accent-cyan-bg: rgba(56, 189, 248, 0.12);
+  --accent-cyan-border: rgba(56, 189, 248, 0.28);
+  --accent-green: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-red: #ef4444;
+  --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  --shadow-modal: 0 30px 60px -15px rgba(0, 0, 0, 0.85);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  /* Unified Theme Transition Parameter (DRY - 150ms) */
+  --transition-theme: 150ms ease;
+  --theme-transition: background-color var(--transition-theme), border-color var(--transition-theme), color var(--transition-theme);
+  --bg-gradient-1: rgba(56, 189, 248, 0.08);
+  --bg-gradient-2: rgba(16, 185, 129, 0.05);
+  /* Nano-UI Integration Variables */
+  --nano-modal-bg: var(--bg-panel);
+  --nano-modal-glass-bg: var(--bg-panel);
+  --nano-modal-border: var(--border-subtle);
+  --nano-modal-text: var(--text-main);
+  --nano-modal-text-muted: var(--text-muted);
+  --nano-modal-backdrop: rgba(0, 0, 0, 0.7);
+  --nano-modal-radius: var(--radius-lg);
+  --nano-ripple-color: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="light"] {
+  /* Light Theme */
+  --bg-app: #f1f5f9;
+  --bg-panel: rgba(255, 255, 255, 0.9);
+  --bg-card: rgba(255, 255, 255, 0.8);
+  --bg-card-hover: #ffffff;
+  --bg-card-active: #e2e8f0;
+  --bg-input: #ffffff;
+  --border-subtle: rgba(0, 0, 0, 0.09);
+  --border-focus: rgba(2, 132, 199, 0.5);
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #94a3b8;
+  --accent-cyan: #0284c7;
+  --accent-cyan-bg: rgba(2, 132, 199, 0.1);
+  --accent-cyan-border: rgba(2, 132, 199, 0.25);
+  --accent-green: #059669;
+  --accent-amber: #d97706;
+  --accent-red: #dc2626;
+  --shadow-card: 0 4px 15px -2px rgba(0, 0, 0, 0.06);
+  --shadow-modal: 0 20px 40px -10px rgba(0, 0, 0, 0.25);
+  --bg-gradient-1: rgba(2, 132, 199, 0.07);
+  --bg-gradient-2: rgba(5, 150, 105, 0.05);
+  /* Nano-UI Integration Variables (Light Mode) */
+  --nano-modal-bg: var(--bg-panel);
+  --nano-modal-glass-bg: var(--bg-panel);
+  --nano-modal-border: var(--border-subtle);
+  --nano-modal-text: var(--text-main);
+  --nano-modal-text-muted: var(--text-muted);
+  --nano-modal-backdrop: rgba(15, 23, 42, 0.45);
+  --nano-ripple-color: rgba(0, 0, 0, 0.12);
+}
+
+/* Zero-FOUC Theme Flash Elimination */
+html {
+  background-color: #090d16;
+  color-scheme: dark;
+}
+
+html[data-theme="light"] {
+  background-color: #f1f5f9;
+  color-scheme: light;
+}
+
+html.preload,
+html.preload * {
+  transition: none !important;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Re-enable text selection strictly for inputs, textareas, and readable content */
+input,
+textarea,
+[contenteditable="true"],
+.selectable,
+.task-text,
+.ai-answer-text,
+.markdown-body,
+code,
+pre {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+img {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(at 10% 10%, var(--bg-gradient-1) 0px, transparent 40%),
+    radial-gradient(at 90% 90%, var(--bg-gradient-2) 0px, transparent 40%);
+  background-attachment: fixed;
+  transition: var(--theme-transition);
+}
+
+button, input, textarea, select {
+  font-family: inherit;
+  color: inherit;
+  outline: none !important;
+}
+
+/* Glassmorphic Panels */
+.glass-panel {
+  background: var(--bg-panel);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  transition: var(--theme-transition);
+}
+
+.glass-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  transition: var(--theme-transition);
+}
+
+.glass-card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-focus);
+}
+
+/* Chrome controls user-select: none (Rule 6.5) */
+button, .btn, .pill, .tab, .card-header, .nav-item, .badge, .navbar, .brand, .column-header, .filter-group, .filter-pill, .board-filter-bar, .status-toggle-btn {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-full);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.32);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-pulse {
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Unified Status Toggle Switch (Rule 6.2 - Intra-App Uniformity) */
+.status-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 6px;
+  border-radius: var(--radius-full);
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--accent-amber);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  outline: none !important;
+}
+
+.status-toggle-btn:hover {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.status-toggle-btn.is-done {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--accent-green);
+  border-color: rgba(16, 185, 129, 0.32);
+}
+
+.status-toggle-btn.is-done:hover {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.48);
+}
+
+[data-theme="light"] .status-toggle-btn {
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+[data-theme="light"] .status-toggle-btn:hover {
+  background: rgba(245, 158, 11, 0.22);
+}
+
+[data-theme="light"] .status-toggle-btn.is-done {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+[data-theme="light"] .status-toggle-btn.is-done:hover {
+  background: rgba(16, 185, 129, 0.24);
+}
+
+.toggle-switch-track {
+  width: 28px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: rgba(245, 158, 11, 0.3);
+  position: relative;
+  transition: background-color 0.15s ease;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.status-toggle-btn.is-done .toggle-switch-track {
+  background: var(--accent-green);
+}
+
+.toggle-switch-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-full);
+  background: #ffffff;
+  position: absolute;
+  left: 2px;
+  transition: transform 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.status-toggle-btn.is-done .toggle-switch-thumb {
+  transform: translateX(12px);
+}
+
+.toggle-status-label {
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
+/* NanoModal Styling Harmonization */
+.nano-modal-window {
+  font-family: var(--font-sans);
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--border-subtle) !important;
+  box-shadow: var(--shadow-modal) !important;
+}
+
+.nano-modal-header {
+  border-bottom: 1px solid var(--border-subtle) !important;
+  background: transparent !important;
+}
+
+.nano-modal-footer {
+  border-top: 1px solid var(--border-subtle) !important;
+  background: transparent !important;
+}
+
+
